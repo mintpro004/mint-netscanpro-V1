@@ -1,0 +1,13 @@
+# NetScan Pro — Python dependencies
+# Core (always needed)
+psutil>=5.9.0
+
+# Network interface enumeration
+netifaces>=0.11.0
+
+# Optional but recommended — better ARP/packet scanning
+# Uncomment if you have root/admin access:
+# scapy>=2.5.0
+
+# HTTP requests for speed test & IP info (stdlib fallback exists)
+# requests>=2.31.0

@@ -1,0 +1,16 @@
+{
+  "name": "netscan-pro-root",
+  "version": "1.0.0",
+  "description": "NetScan Pro — root workspace",
+  "private": true,
+  "scripts": {
+    "install:deps": "cd frontend && npm install",
+    "start": "cd frontend && npm start",
+    "build:linux": "cd frontend && npm run build:linux",
+    "build:mac": "cd frontend && npm run build:mac",
+    "build:win": "cd frontend && npm run build:win",
+    "build:all": "cd frontend && npm run build:all",
+    "backend": "python3 backend/scanner.py",
+    "setup": "bash scripts/setup.sh"
+  }
+}

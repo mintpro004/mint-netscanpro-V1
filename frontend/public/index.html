@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetScan Pro</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2535;
+    --border: #2a3347;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --blue: #3b82f6;
+    --blue-dim: #1e3a5f;
+    --green: #22c55e;
+    --green-dim: #14532d;
+    --amber: #f59e0b;
+    --amber-dim: #451a03;
+    --red: #ef4444;
+    --red-dim: #450a0a;
+    --purple: #a855f7;
+    --radius: 8px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-size: 13px; }
+
+  /* TOP BAR */
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .logo { font-size: 16px; font-weight: 700; color: var(--blue); letter-spacing: -0.3px; }
+  .logo span { color: var(--text); }
+  .net-badge { padding: 3px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; font-size: 11px; color: var(--text2); cursor: pointer; }
+  .net-badge:hover { border-color: var(--blue); color: var(--blue); }
+  .spacer { flex: 1; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.offline { background: var(--red); box-shadow: none; }
+  .status-text { font-size: 11px; color: var(--text2); }
+  .topbtn { padding: 5px 12px; background: var(--blue); color: white; border: none; border-radius: var(--radius); font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .topbtn:hover { opacity: 0.85; }
+  .topbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .topbtn.secondary { background: var(--bg3); border: 1px solid var(--border); color: var(--text); }
+
+  /* LAYOUT */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar { width: 48px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 4px; flex-shrink: 0; }
+  .nav-btn { width: 36px; height: 36px; border-radius: var(--radius); border: none; background: none; color: var(--text3); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.15s; position: relative; }
+  .nav-btn:hover { background: var(--bg3); color: var(--text); }
+  .nav-btn.active { background: var(--blue-dim); color: var(--blue); }
+  .nav-btn .tooltip { position: absolute; left: 44px; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: 6px; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 100; }
+  .nav-btn:hover .tooltip { opacity: 1; }
+
+  /* MAIN CONTENT */
+  .main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+  .pane { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .pane.active { display: flex; }
+
+  /* TOOLBAR */
+  .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--bg2); }
+  .search { flex: 1; max-width: 280px; padding: 5px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 12px; outline: none; }
+  .search:focus { border-color: var(--blue); }
+  .tbtn { padding: 5px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text2); font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .tbtn:hover { border-color: var(--blue); color: var(--blue); }
+  .tbtn.primary { background: var(--blue); color: white; border-color: var(--blue); }
+  .tbtn.primary:hover { opacity: 0.85; }
+  select.tbtn { appearance: none; padding-right: 20px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 6px center; }
+
+  /* PROGRESS */
+  .progress-wrap { padding: 6px 14px; background: var(--bg2); border-bottom: 1px solid var(--border); display: none; }
+  .progress-bar { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--blue); border-radius: 2px; width: 0%; transition: width 0.3s; }
+  .progress-msg { font-size: 10px; color: var(--text3); margin-top: 4px; font-family: monospace; }
+
+  /* TABLE */
+  .table-wrap { flex: 1; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { padding: 6px 12px; text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); background: var(--bg2); border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+  tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  tbody tr:hover { background: var(--bg2); }
+  tbody tr.selected { background: var(--blue-dim); }
+  td { padding: 7px 12px; font-size: 12px; }
+  .type-icon { font-size: 14px; }
+  .device-name { font-weight: 500; }
+  .device-vendor { color: var(--text3); font-size: 11px; }
+  .mono { font-family: monospace; font-size: 11px; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-blue { background: var(--blue-dim); color: var(--blue); }
+
+  /* SPLIT VIEW */
+  .split { display: flex; flex: 1; overflow: hidden; }
+  .split-left { flex: 1; overflow: auto; border-right: 1px solid var(--border); }
+  .split-right { width: 320px; overflow: auto; background: var(--bg2); flex-shrink: 0; }
+
+  /* DETAIL PANEL */
+  .detail { padding: 14px; }
+  .detail-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .detail-icon { font-size: 28px; }
+  .detail-name { font-size: 14px; font-weight: 600; }
+  .detail-ip { font-size: 11px; color: var(--text3); font-family: monospace; }
+  .detail-section { margin-bottom: 14px; }
+  .detail-section h4 { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); margin-bottom: 8px; }
+  .detail-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .detail-row:last-child { border: none; }
+  .detail-label { color: var(--text2); }
+  .detail-val { color: var(--text); font-family: monospace; font-size: 11px; text-align: right; }
+  .port-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .port-pill { padding: 2px 7px; background: var(--green-dim); color: var(--green); border-radius: 20px; font-size: 10px; font-family: monospace; }
+  .scan-btn { width: 100%; padding: 6px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text2); font-size: 11px; cursor: pointer; margin-top: 8px; transition: all 0.15s; }
+  .scan-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px 14px; flex-shrink: 0; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .stat-num { font-size: 24px; font-weight: 700; }
+  .stat-label { font-size: 10px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-num.blue { color: var(--blue); }
+  .stat-num.green { color: var(--green); }
+  .stat-num.red { color: var(--red); }
+  .stat-num.amber { color: var(--amber); }
+
+  /* MAP */
+  .map-container { flex: 1; position: relative; overflow: hidden; }
+  #net-map-svg { width: 100%; height: 100%; }
+
+  /* VULN */
+  .vuln-item { display: flex; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .vuln-item:hover { background: var(--bg2); }
+  .vuln-sev { padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; margin-top: 2px; }
+  .sev-high { background: var(--red-dim); color: var(--red); }
+  .sev-medium { background: var(--amber-dim); color: var(--amber); }
+  .sev-low { background: var(--green-dim); color: var(--green); }
+  .vuln-title { font-weight: 600; font-size: 12px; }
+  .vuln-desc { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .vuln-cve { font-size: 10px; color: var(--text3); font-family: monospace; margin-top: 2px; }
+  .vuln-device { font-size: 10px; color: var(--blue); margin-top: 2px; }
+
+  /* ALERT */
+  .alert-item { display: flex; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .alert-item:hover { background: var(--bg2); }
+  .alert-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .alert-msg { font-weight: 500; font-size: 12px; }
+  .alert-sub { font-size: 11px; color: var(--text2); margin-top: 2px; font-family: monospace; }
+  .alert-time { font-size: 10px; color: var(--text3); margin-left: auto; white-space: nowrap; }
+
+  /* SPEED */
+  .speed-display { display: flex; align-items: center; justify-content: center; gap: 40px; padding: 20px; }
+  .speed-gauge { text-align: center; }
+  .speed-num { font-size: 40px; font-weight: 700; }
+  .speed-unit { font-size: 13px; color: var(--text3); margin-top: 2px; }
+  .speed-label { font-size: 11px; color: var(--text2); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  #speed-chart { width: 100%; height: 100px; display: block; }
+
+  /* WIFI */
+  .wifi-item { display: flex; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid var(--border); cursor: default; }
+  .wifi-item:hover { background: var(--bg2); }
+  .wifi-signal { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
+  .wifi-bar { width: 4px; border-radius: 1px; background: var(--border); }
+  .wifi-bar.lit { background: var(--green); }
+  .wifi-name { font-weight: 500; font-size: 12px; }
+  .wifi-details { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* PORT RESULTS */
+  .port-result-row { display: grid; grid-template-columns: 60px 60px 120px 80px 1fr; gap: 10px; padding: 7px 14px; border-bottom: 1px solid var(--border); font-size: 12px; align-items: center; }
+  .port-result-row:hover { background: var(--bg2); }
+  .port-hdr { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg2); position: sticky; top: 0; border-bottom: 1px solid var(--border); }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 50px 20px; color: var(--text3); }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
+  .empty-msg { font-size: 13px; }
+  .empty-sub { font-size: 11px; margin-top: 6px; }
+
+  /* LOADING SPINNER */
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* CONNECTION BANNER */
+  .conn-banner { display: none; padding: 6px 14px; background: var(--amber-dim); border-bottom: 1px solid var(--amber); font-size: 11px; color: var(--amber); text-align: center; }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .sidebar { width: 40px; }
+    .split-right { display: none; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .speed-display { flex-direction: column; gap: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="conn-banner" id="conn-banner">
+  ⚠ Cannot connect to NetScan Pro backend — make sure <code>python3 scanner.py</code> is running
+</div>
+
+<div class="topbar">
+  <div class="logo">Net<span>Scan</span> Pro</div>
+  <div class="net-badge" id="net-info" onclick="pickInterface()">Loading…</div>
+  <div class="spacer"></div>
+  <div class="status-dot" id="status-dot"></div>
+  <div class="status-text" id="status-text">Connecting…</div>
+  <button class="topbtn secondary" id="rescan-btn" onclick="startScan()" disabled>⟳ Rescan</button>
+  <button class="topbtn" id="scan-btn" onclick="startScan()">Scan network</button>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <button class="nav-btn active" data-pane="devices" onclick="showPane('devices')">📡<span class="tooltip">Devices</span></button>
+    <button class="nav-btn" data-pane="map" onclick="showPane('map')">🗺<span class="tooltip">Network map</span></button>
+    <button class="nav-btn" data-pane="ports" onclick="showPane('ports')">🔍<span class="tooltip">Port scanner</span></button>
+    <button class="nav-btn" data-pane="vulns" onclick="showPane('vulns')">🛡<span class="tooltip">Vulnerabilities</span></button>
+    <button class="nav-btn" data-pane="speed" onclick="showPane('speed')">⚡<span class="tooltip">Speed test</span></button>
+    <button class="nav-btn" data-pane="wifi" onclick="showPane('wifi')">📶<span class="tooltip">Wi-Fi</span></button>
+    <button class="nav-btn" data-pane="alerts" onclick="showPane('alerts')">🔔<span class="tooltip">Alerts</span></button>
+    <div style="flex:1"></div>
+    <button class="nav-btn" onclick="openSettings()">⚙<span class="tooltip">Settings</span></button>
+  </div>
+
+  <div class="main">
+
+    <!-- DEVICES PANE -->
+    <div class="pane active" id="pane-devices">
+      <div class="toolbar">
+        <input class="search" type="text" placeholder="Filter by name, IP, MAC, vendor…" oninput="filterDevices(this.value)" id="dev-search">
+        <select class="tbtn" id="sort-sel" onchange="renderDevices()">
+          <option value="ip">Sort: IP</option>
+          <option value="name">Sort: Name</option>
+          <option value="status">Sort: Status</option>
+          <option value="vendor">Sort: Vendor</option>
+          <option value="latency">Sort: Latency</option>
+        </select>
+        <select class="tbtn" id="type-filter" onchange="renderDevices()">
+          <option value="">All types</option>
+          <option value="router">Routers</option>
+          <option value="laptop">Laptops</option>
+          <option value="phone">Phones</option>
+          <option value="server">Servers</option>
+          <option value="iot">IoT</option>
+          <option value="printer">Printers</option>
+          <option value="tv">TVs</option>
+          <option value="gaming">Gaming</option>
+          <option value="unknown">Unknown</option>
+        </select>
+      </div>
+      <div class="progress-wrap" id="scan-progress">
+        <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+        <div class="progress-msg" id="prog-msg">Initialising…</div>
+      </div>
+      <div class="split">
+        <div class="split-left">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th>Device</th>
+                <th>IP address</th>
+                <th>MAC address</th>
+                <th>Hostname</th>
+                <th>Latency</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="device-tbody"></tbody>
+          </table>
+          <div class="empty" id="dev-empty" style="display:none">
+            <div class="empty-icon">📡</div>
+            <div class="empty-msg">No devices found</div>
+            <div class="empty-sub">Click "Scan network" to discover devices</div>
+          </div>
+        </div>
+        <div class="split-right" id="detail-panel">
+          <div style="padding:14px;color:var(--text3);text-align:center;margin-top:40px">
+            <div style="font-size:28px;margin-bottom:10px">👆</div>
+            <div>Select a device to view details</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP PANE -->
+    <div class="pane" id="pane-map">
+      <div class="stats-row" id="map-stats">
+        <div class="stat-card"><div class="stat-num blue" id="s-total">—</div><div class="stat-label">Total devices</div></div>
+        <div class="stat-card"><div class="stat-num green" id="s-online">—</div><div class="stat-label">Online</div></div>
+        <div class="stat-card"><div class="stat-num red" id="s-offline">—</div><div class="stat-label">Offline</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="s-unknown">—</div><div class="stat-label">Unknown type</div></div>
+      </div>
+      <div class="map-container">
+        <svg id="net-map-svg"></svg>
+      </div>
+    </div>
+
+    <!-- PORT SCANNER PANE -->
+    <div class="pane" id="pane-ports">
+      <div class="toolbar">
+        <input class="search" type="text" placeholder="Target IP…" id="port-target" style="max-width:160px">
+        <select class="tbtn" id="port-range-sel">
+          <option value="common">Common ports</option>
+          <option value="top100">Top 100</option>
+          <option value="full">Full scan (1–1024 + common)</option>
+        </select>
+        <button class="tbtn primary" onclick="runPortScan()">Scan ports</button>
+        <span class="tbtn secondary" id="port-status" style="background:none;border:none;color:var(--text3)"></span>
+      </div>
+      <div class="progress-wrap" id="port-progress">
+        <div class="progress-bar"><div class="progress-fill" id="port-prog-fill"></div></div>
+        <div class="progress-msg" id="port-prog-msg">Scanning…</div>
+      </div>
+      <div style="flex:1;overflow:auto">
+        <div class="port-result-row port-hdr">
+          <div>Port</div><div>Proto</div><div>Service</div><div>State</div><div>Banner</div>
+        </div>
+        <div id="port-results-list"></div>
+        <div class="empty" id="port-empty">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-msg">Enter an IP and click "Scan ports"</div>
+          <div class="empty-sub">Or select a device and use the scan button</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VULNERABILITIES PANE -->
+    <div class="pane" id="pane-vulns">
+      <div class="toolbar">
+        <button class="tbtn primary" onclick="loadVulns()">Re-analyse</button>
+        <select class="tbtn" id="vuln-filter" onchange="renderVulns()">
+          <option value="">All severity</option>
+          <option value="high">High only</option>
+          <option value="medium">Medium only</option>
+          <option value="low">Low only</option>
+        </select>
+        <span id="vuln-summary" style="font-size:11px;color:var(--text3)"></span>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num red" id="v-high">0</div><div class="stat-label">High severity</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="v-med">0</div><div class="stat-label">Medium</div></div>
+        <div class="stat-card"><div class="stat-num green" id="v-low">0</div><div class="stat-label">Low</div></div>
+        <div class="stat-card"><div class="stat-num blue" id="v-total">0</div><div class="stat-label">Total findings</div></div>
+      </div>
+      <div style="flex:1;overflow:auto" id="vuln-list"></div>
+    </div>
+
+    <!-- SPEED TEST PANE -->
+    <div class="pane" id="pane-speed">
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num blue" id="dl-speed">—</div><div class="stat-label">Download Mbps</div></div>
+        <div class="stat-card"><div class="stat-num green" id="ul-speed">—</div><div class="stat-label">Upload Mbps</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="ping-speed">—</div><div class="stat-label">Ping ms</div></div>
+        <div class="stat-card"><div class="stat-num" id="isp-name" style="font-size:14px;margin-top:4px">—</div><div class="stat-label">ISP</div></div>
+      </div>
+      <div style="text-align:center;padding:16px">
+        <button class="topbtn" id="speed-btn" onclick="runSpeedTest()">Start speed test</button>
+      </div>
+      <div style="padding:0 14px;flex:1">
+        <canvas id="speed-chart"></canvas>
+        <div style="margin-top:16px">
+          <div id="conn-info"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WIFI PANE -->
+    <div class="pane" id="pane-wifi">
+      <div class="toolbar">
+        <button class="tbtn primary" onclick="loadWifi()">Scan Wi-Fi</button>
+        <span style="font-size:11px;color:var(--text3)">2.4GHz &amp; 5GHz — requires elevated permissions on some systems</span>
+      </div>
+      <div style="flex:1;overflow:auto" id="wifi-list"></div>
+    </div>
+
+    <!-- ALERTS PANE -->
+    <div class="pane" id="pane-alerts">
+      <div class="toolbar">
+        <select class="tbtn" id="alert-filter" onchange="loadAlerts()">
+          <option value="">All alerts</option>
+          <option value="new">New devices</option>
+          <option value="offline">Went offline</option>
+          <option value="security">Security</option>
+        </select>
+        <button class="tbtn" onclick="clearAlerts()">Clear all</button>
+      </div>
+      <div style="flex:1;overflow:auto" id="alert-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:7832';
+const ICONS = {router:'🌐',laptop:'💻',phone:'📱',tv:'📺',server:'🖥️',printer:'🖨️',iot:'💡',gaming:'🎮',desktop:'🗔',tablet:'📱',unknown:'❓'};
+
+let allDevices = [];
+let filteredDevices = [];
+let selectedDeviceIP = null;
+let vulnData = [];
+let speedHistory = [];
+let interfaces = [];
+let currentCIDR = '';
+let pollTimer = null;
+let backendOK = false;
+
+// ── API ──
+async function api(path, opts={}) {
+  try {
+    const r = await fetch(API + path, {headers:{'Content-Type':'application/json'}, ...opts});
+    return r.json();
+  } catch(e) {
+    return null;
+  }
+}
+
+async function post(path, body) {
+  return api(path, {method:'POST', body: JSON.stringify(body)});
+}
+
+// ── INIT ──
+async function init() {
+  // Check backend
+  const check = await api('/api/interfaces');
+  if (!check) {
+    document.getElementById('conn-banner').style.display = 'block';
+    document.getElementById('status-dot').classList.add('offline');
+    document.getElementById('status-text').textContent = 'Backend offline';
+    setTimeout(init, 3000);
+    return;
+  }
+
+  backendOK = true;
+  document.getElementById('conn-banner').style.display = 'none';
+  document.getElementById('status-dot').classList.remove('offline');
+  document.getElementById('status-text').textContent = 'Ready';
+  document.getElementById('scan-btn').disabled = false;
+  document.getElementById('rescan-btn').disabled = false;
+
+  interfaces = check;
+  if (interfaces.length > 0) {
+    currentCIDR = interfaces[0].cidr;
+    document.getElementById('net-info').textContent = `${interfaces[0].name} — ${currentCIDR}`;
+  }
+
+  loadPublicInfo();
+  loadDevices();
+  pollScanStatus();
+}
+
+function pickInterface() {
+  if (!interfaces.length) return;
+  const opts = interfaces.map((i,idx) => `${idx}: ${i.name} (${i.cidr})`).join('\n');
+  const idx = prompt('Select interface:\n' + opts, '0');
+  if (idx !== null && interfaces[parseInt(idx)]) {
+    const iface = interfaces[parseInt(idx)];
+    currentCIDR = iface.cidr;
+    document.getElementById('net-info').textContent = `${iface.name} — ${currentCIDR}`;
+  }
+}
+
+// ── SCAN ──
+async function startScan() {
+  document.getElementById('scan-progress').style.display = 'block';
+  document.getElementById('scan-btn').disabled = true;
+  document.getElementById('rescan-btn').disabled = true;
+  const r = await post('/api/scan/start', {cidr: currentCIDR});
+  if (!r) return;
+  pollScanStatus();
+}
+
+async function pollScanStatus() {
+  clearTimeout(pollTimer);
+  const status = await api('/api/scan/status');
+  if (!status) { pollTimer = setTimeout(pollScanStatus, 2000); return; }
+
+  if (status.scanning) {
+    document.getElementById('scan-progress').style.display = 'block';
+    document.getElementById('prog-fill').style.width = status.progress + '%';
+    document.getElementById('prog-msg').textContent = `Scanning ${status.current_ip || '...'} — ${status.device_count} found`;
+    document.getElementById('status-text').textContent = `Scanning… ${status.progress}%`;
+    await loadDevices();
+    pollTimer = setTimeout(pollScanStatus, 800);
+  } else {
+    document.getElementById('scan-progress').style.display = 'none';
+    document.getElementById('scan-btn').disabled = false;
+    document.getElementById('rescan-btn').disabled = false;
+    document.getElementById('status-text').textContent = `${status.device_count} devices`;
+    await loadDevices();
+    loadVulns();
+    loadAlerts();
+    updateMapStats();
+    pollTimer = setTimeout(pollScanStatus, 15000);
+  }
+}
+
+// ── DEVICES ──
+async function loadDevices() {
+  const data = await api('/api/devices');
+  if (!data) return;
+  allDevices = data;
+  renderDevices();
+  updateMapStats();
+}
+
+function filterDevices(q) {
+  const s = q.toLowerCase();
+  filteredDevices = allDevices.filter(d =>
+    d.name?.toLowerCase().includes(s) ||
+    d.ip?.includes(s) ||
+    d.mac?.toLowerCase().includes(s) ||
+    d.vendor?.toLowerCase().includes(s) ||
+    d.hostname?.toLowerCase().includes(s)
+  );
+  renderDeviceTable(filteredDevices);
+}
+
+function renderDevices() {
+  const sort = document.getElementById('sort-sel').value;
+  const typeF = document.getElementById('type-filter').value;
+  let devs = [...allDevices];
+
+  if (typeF) devs = devs.filter(d => d.type === typeF);
+
+  const q = document.getElementById('dev-search').value.toLowerCase();
+  if (q) devs = devs.filter(d =>
+    d.name?.toLowerCase().includes(q) || d.ip?.includes(q) ||
+    d.mac?.toLowerCase().includes(q) || d.vendor?.toLowerCase().includes(q)
+  );
+
+  devs.sort((a,b) => {
+    if (sort === 'ip') return ipNum(a.ip) - ipNum(b.ip);
+    if (sort === 'name') return (a.name||'').localeCompare(b.name||'');
+    if (sort === 'status') return (a.status||'').localeCompare(b.status||'');
+    if (sort === 'vendor') return (a.vendor||'').localeCompare(b.vendor||'');
+    if (sort === 'latency') return (a.latency||999) - (b.latency||999);
+    return 0;
+  });
+
+  filteredDevices = devs;
+  renderDeviceTable(devs);
+}
+
+function ipNum(ip) {
+  return (ip||'0.0.0.0').split('.').reduce((acc,v,i) => acc + (+v)*Math.pow(256,3-i), 0);
+}
+
+function renderDeviceTable(devs) {
+  const tbody = document.getElementById('device-tbody');
+  const empty = document.getElementById('dev-empty');
+  if (!devs.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = devs.map(d => `
+    <tr class="${selectedDeviceIP===d.ip?'selected':''}" onclick="selectDevice('${d.ip}')">
+      <td class="type-icon">${ICONS[d.type]||'❓'}</td>
+      <td><div class="device-name">${d.name||d.ip}</div><div class="device-vendor">${d.vendor||''}</div></td>
+      <td class="mono">${d.ip}</td>
+      <td class="mono">${d.mac||'—'}</td>
+      <td class="mono" style="font-size:10px">${d.hostname||'—'}</td>
+      <td style="font-size:12px">${d.status==='online'?d.latency+'ms':'—'}</td>
+      <td><span class="badge ${d.status==='online'?'badge-green':'badge-red'}">${d.status||'unknown'}</span></td>
+    </tr>
+  `).join('');
+}
+
+function selectDevice(ip) {
+  selectedDeviceIP = ip;
+  const d = allDevices.find(x => x.ip === ip);
+  renderDevices();
+  if (!d) return;
+  const panel = document.getElementById('detail-panel');
+  panel.innerHTML = `
+    <div class="detail">
+      <div class="detail-header">
+        <div class="detail-icon">${ICONS[d.type]||'❓'}</div>
+        <div>
+          <div class="detail-name">${d.name||d.ip}</div>
+          <div class="detail-ip">${d.ip}</div>
+        </div>
+        <span class="badge ${d.status==='online'?'badge-green':'badge-red'}" style="margin-left:auto">${d.status}</span>
+      </div>
+      <div class="detail-section">
+        <h4>Network</h4>
+        <div class="detail-row"><span class="detail-label">IP</span><span class="detail-val">${d.ip}</span></div>
+        <div class="detail-row"><span class="detail-label">MAC</span><span class="detail-val">${d.mac||'—'}</span></div>
+        <div class="detail-row"><span class="detail-label">Hostname</span><span class="detail-val" style="font-size:10px">${d.hostname||'—'}</span></div>
+        <div class="detail-row"><span class="detail-label">Latency</span><span class="detail-val">${d.latency ? d.latency+'ms' : '—'}</span></div>
+      </div>
+      <div class="detail-section">
+        <h4>Device</h4>
+        <div class="detail-row"><span class="detail-label">Vendor</span><span class="detail-val">${d.vendor||'Unknown'}</span></div>
+        <div class="detail-row"><span class="detail-label">OS guess</span><span class="detail-val">${d.os||'Unknown'}</span></div>
+        <div class="detail-row"><span class="detail-label">Type</span><span class="detail-val">${d.type||'unknown'}</span></div>
+        <div class="detail-row"><span class="detail-label">Last seen</span><span class="detail-val" style="font-size:10px">${d.last_seen ? new Date(d.last_seen).toLocaleTimeString() : '—'}</span></div>
+      </div>
+      <div class="detail-section">
+        <h4>Open ports <span id="ports-loading-${ip}" style="font-size:10px;color:var(--text3)"></span></h4>
+        <div class="port-grid" id="port-grid-${ip}">
+          ${d.ports?.length ? d.ports.map(p=>`<span class="port-pill">${p}</span>`).join('') : '<span style="font-size:11px;color:var(--text3)">Not scanned yet</span>'}
+        </div>
+        <button class="scan-btn" onclick="quickPortScan('${ip}')">🔍 Scan ports for this device</button>
+        <button class="scan-btn" onclick="setPortTarget('${ip}')" style="margin-top:4px">Open in port scanner ↗</button>
+      </div>
+    </div>
+  `;
+}
+
+async function quickPortScan(ip) {
+  const lbl = document.getElementById(`ports-loading-${ip}`);
+  if (lbl) lbl.textContent = '(scanning…)';
+  const results = await post('/api/ports/scan', {ip, range:'common'});
+  if (!results) return;
+  const grid = document.getElementById(`port-grid-${ip}`);
+  if (grid) {
+    grid.innerHTML = results.length
+      ? results.map(r => `<span class="port-pill" title="${r.service}">${r.port}/${r.service}</span>`).join('')
+      : '<span style="font-size:11px;color:var(--text3)">No open ports found</span>';
+  }
+  if (lbl) lbl.textContent = `(${results.length} open)`;
+  // Update device in state
+  const d = allDevices.find(x => x.ip === ip);
+  if (d) d.ports = results.map(r => r.port);
+}
+
+function setPortTarget(ip) {
+  document.getElementById('port-target').value = ip;
+  showPane('ports');
+}
+
+// ── MAP ──
+function updateMapStats() {
+  const online = allDevices.filter(d => d.status === 'online').length;
+  const offline = allDevices.filter(d => d.status === 'offline').length;
+  const unknown = allDevices.filter(d => d.type === 'unknown').length;
+  document.getElementById('s-total').textContent = allDevices.length;
+  document.getElementById('s-online').textContent = online;
+  document.getElementById('s-offline').textContent = offline;
+  document.getElementById('s-unknown').textContent = unknown;
+  renderMap();
+}
+
+function renderMap() {
+  const svg = document.getElementById('net-map-svg');
+  if (!svg) return;
+  const W = svg.clientWidth || 700, H = svg.clientHeight || 400;
+  const router = allDevices.find(d => d.type === 'router') || allDevices[0];
+  if (!allDevices.length) { svg.innerHTML = ''; return; }
+
+  const others = allDevices.filter(d => d !== router);
+  const cx = W/2, cy = H/2;
+  const r = Math.min(W,H)*0.35;
+
+  let lines = '', nodes = '';
+
+  const routerNode = router || {ip:'?', type:'router', name:'Gateway', status:'online'};
+  nodes += svgNode(cx, cy, routerNode, true);
+
+  others.forEach((d, i) => {
+    const angle = (2*Math.PI*i/others.length) - Math.PI/2;
+    const x = cx + r*Math.cos(angle);
+    const y = cy + r*Math.sin(angle);
+    const color = d.status === 'online' ? '#22c55e' : '#ef4444';
+    lines += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#2a3347" stroke-width="1"/>`;
+    nodes += svgNode(x, y, d, false);
+  });
+
+  svg.innerHTML = `<g>${lines}</g><g>${nodes}</g>`;
+}
+
+function svgNode(x, y, d, isRouter) {
+  const icon = ICONS[d.type] || '❓';
+  const col = d.status === 'online' ? '#22c55e' : '#64748b';
+  const bg = isRouter ? '#1e3a5f' : '#1e2535';
+  const border = isRouter ? '#3b82f6' : '#2a3347';
+  const size = isRouter ? 28 : 22;
+  const label = (d.name||d.ip).substring(0,12);
+  return `
+    <g transform="translate(${x},${y})" onclick="selectDevice('${d.ip}')" style="cursor:pointer">
+      <rect x="${-size}" y="${-size}" width="${size*2}" height="${size*2}" rx="8" fill="${bg}" stroke="${border}" stroke-width="1.5"/>
+      <circle cx="${size-5}" cy="${-size+5}" r="4" fill="${col}"/>
+      <text x="0" y="6" text-anchor="middle" font-size="${isRouter?16:13}" fill="white">${icon}</text>
+      <text x="0" y="${size+12}" text-anchor="middle" font-size="10" fill="#94a3b8">${label}</text>
+      <text x="0" y="${size+22}" text-anchor="middle" font-size="9" fill="#64748b" font-family="monospace">${d.ip}</text>
+    </g>
+  `;
+}
+
+// ── PORT SCANNER ──
+async function runPortScan() {
+  const ip = document.getElementById('port-target').value.trim();
+  if (!ip) { alert('Enter a target IP address'); return; }
+  const range = document.getElementById('port-range-sel').value;
+
+  document.getElementById('port-progress').style.display = 'block';
+  document.getElementById('port-results-list').innerHTML = '';
+  document.getElementById('port-empty').style.display = 'none';
+  document.getElementById('port-prog-fill').style.width = '10%';
+  document.getElementById('port-prog-msg').textContent = `Scanning ${ip}…`;
+
+  const results = await post('/api/ports/scan', {ip, range});
+  document.getElementById('port-progress').style.display = 'none';
+
+  if (!results) { document.getElementById('port-empty').style.display = 'block'; return; }
+  if (!results.length) {
+    document.getElementById('port-results-list').innerHTML = '<div style="padding:20px;color:var(--text3);text-align:center">No open ports found</div>';
+    return;
+  }
+
+  document.getElementById('port-results-list').innerHTML = results.map(r => `
+    <div class="port-result-row">
+      <span style="font-family:monospace;font-weight:600;color:var(--blue)">${r.port}</span>
+      <span style="color:var(--text3)">${r.protocol}</span>
+      <span>${r.service}</span>
+      <span class="badge badge-green">${r.state}</span>
+      <span style="font-family:monospace;font-size:10px;color:var(--text3)">${r.banner||'—'}</span>
+    </div>
+  `).join('');
+}
+
+// ── VULNS ──
+async function loadVulns() {
+  const data = await api('/api/vulnerabilities');
+  if (!data) return;
+  vulnData = data;
+  renderVulns();
+}
+
+function renderVulns() {
+  const filter = document.getElementById('vuln-filter').value;
+  const items = filter ? vulnData.filter(v => v.severity === filter) : vulnData;
+  const high = vulnData.filter(v=>v.severity==='high').length;
+  const med = vulnData.filter(v=>v.severity==='medium').length;
+  const low = vulnData.filter(v=>v.severity==='low').length;
+  document.getElementById('v-high').textContent = high;
+  document.getElementById('v-med').textContent = med;
+  document.getElementById('v-low').textContent = low;
+  document.getElementById('v-total').textContent = vulnData.length;
+
+  const list = document.getElementById('vuln-list');
+  if (!items.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-msg">No vulnerabilities found</div><div class="empty-sub">Scan network first, then re-analyse</div></div>';
+    return;
+  }
+  list.innerHTML = items.map(v => `
+    <div class="vuln-item">
+      <div style="flex:1">
+        <div class="vuln-title">${v.title}</div>
+        <div class="vuln-device">${v.device_name} (${v.device_ip})</div>
+        <div class="vuln-desc">${v.desc}</div>
+        ${v.cve ? `<div class="vuln-cve">${v.cve}</div>` : ''}
+      </div>
+      <span class="vuln-sev sev-${v.severity}">${v.severity}</span>
+    </div>
+  `).join('');
+}
+
+// ── SPEED TEST ──
+async function runSpeedTest() {
+  const btn = document.getElementById('speed-btn');
+  btn.disabled = true; btn.textContent = '⏳ Testing…';
+  speedHistory = [];
+  drawSpeedChart();
+
+  document.getElementById('dl-speed').textContent = '…';
+  document.getElementById('ul-speed').textContent = '…';
+  document.getElementById('ping-speed').textContent = '…';
+
+  const result = await api('/api/speedtest');
+  btn.disabled = false; btn.textContent = 'Run again';
+  if (!result) { btn.textContent = 'Start speed test'; return; }
+
+  document.getElementById('dl-speed').textContent = result.download ?? '—';
+  document.getElementById('ul-speed').textContent = result.upload ?? '—';
+  document.getElementById('ping-speed').textContent = result.ping ?? '—';
+
+  speedHistory.push({dl: result.download||0, ul: result.upload||0});
+  drawSpeedChart();
+}
+
+function drawSpeedChart() {
+  const c = document.getElementById('speed-chart');
+  if (!c) return;
+  c.width = c.offsetWidth || 600;
+  c.height = 100;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  if (!speedHistory.length) return;
+  const max = Math.max(...speedHistory.map(x=>Math.max(x.dl,x.ul)), 10);
+  const W = c.width, H = c.height, pad = 10;
+
+  const draw = (key, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+    speedHistory.forEach((p,i) => {
+      const x = pad+(i/(speedHistory.length-1||1))*(W-2*pad);
+      const y = H-pad-(p[key]/max)*(H-2*pad);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  };
+
+  draw('dl', '#3b82f6');
+  draw('ul', '#22c55e');
+  ctx.fillStyle='#3b82f6'; ctx.font='11px monospace'; ctx.fillText('↓ Download', pad, pad+10);
+  ctx.fillStyle='#22c55e'; ctx.fillText('↑ Upload', pad+100, pad+10);
+}
+
+async function loadPublicInfo() {
+  const pub = await api('/api/public');
+  const dns = await api('/api/dns');
+  if (!pub && !dns) return;
+  const isp = pub?.isp || '—';
+  document.getElementById('isp-name').textContent = isp.length > 20 ? isp.substring(0,20)+'…' : isp;
+  document.getElementById('conn-info').innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px">
+      <div class="detail-row"><span class="detail-label">ISP</span><span class="detail-val">${pub?.isp||'—'}</span></div>
+      <div class="detail-row"><span class="detail-label">Public IP</span><span class="detail-val">${pub?.public_ip||'—'}</span></div>
+      <div class="detail-row"><span class="detail-label">Location</span><span class="detail-val">${pub?.city||''}${pub?.country?', '+pub.country:''}</span></div>
+      <div class="detail-row"><span class="detail-label">DNS servers</span><span class="detail-val">${dns?.servers?.join(', ')||'—'}</span></div>
+      <div class="detail-row"><span class="detail-label">Timezone</span><span class="detail-val">${pub?.timezone||'—'}</span></div>
+    </div>
+  `;
+}
+
+// ── WIFI ──
+async function loadWifi() {
+  const list = document.getElementById('wifi-list');
+  list.innerHTML = '<div style="padding:20px;color:var(--text3);text-align:center"><div class="spinner"></div> Scanning…</div>';
+  const data = await api('/api/wifi');
+  if (!data || !data.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📶</div><div class="empty-msg">No Wi-Fi networks found</div><div class="empty-sub">Requires nmcli (Linux), airport (macOS), or netsh (Windows). May need elevated permissions.</div></div>';
+    return;
+  }
+  const sorted = [...data].sort((a,b) => (b.signal||0)-(a.signal||0));
+  list.innerHTML = sorted.map(n => `
+    <div class="wifi-item">
+      ${sigBars(n.signal)}
+      <div style="flex:1">
+        <div class="wifi-name">${n.ssid||'Hidden'}</div>
+        <div class="wifi-details">${n.band||''} · Ch ${n.channel||'?'} · ${n.security||'Open'}${n.frequency?' · '+n.frequency:''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:600;font-size:13px">${n.signal??'?'} dBm</div>
+        ${n.rate?`<div style="font-size:10px;color:var(--text3)">${n.rate}</div>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function sigBars(dbm) {
+  const pct = Math.max(0, Math.min(100, 2*(dbm+100)));
+  const bars = Math.round(pct/25);
+  return `<div class="wifi-signal">${[1,2,3,4].map(i=>`<div class="wifi-bar ${i<=bars?'lit':''}" style="height:${i*4}px"></div>`).join('')}</div>`;
+}
+
+// ── ALERTS ──
+async function loadAlerts() {
+  const filter = document.getElementById('alert-filter').value;
+  const data = await api('/api/alerts');
+  const list = document.getElementById('alert-list');
+  if (!data?.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🔔</div><div class="empty-msg">No alerts yet</div><div class="empty-sub">Alerts appear when new devices join or security issues are detected</div></div>';
+    return;
+  }
+  const items = filter ? data.filter(a => a.type === filter) : data;
+  const icons = {new:'🔵',offline:'🔴',security:'⚠️'};
+  list.innerHTML = items.map(a => `
+    <div class="alert-item">
+      <div class="alert-icon">${icons[a.type]||'⚪'}</div>
+      <div style="flex:1">
+        <div class="alert-msg">${a.msg}</div>
+        <div class="alert-sub">${a.sub}</div>
+      </div>
+      <div class="alert-time">${a.time}</div>
+    </div>
+  `).join('');
+}
+
+async function clearAlerts() {
+  document.getElementById('alert-list').innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-msg">All alerts cleared</div></div>';
+}
+
+// ── PANE SWITCHING ──
+function showPane(name) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const pane = document.getElementById('pane-'+name);
+  if (pane) pane.classList.add('active');
+  const btn = document.querySelector(`[data-pane="${name}"]`);
+  if (btn) btn.classList.add('active');
+
+  if (name==='map') renderMap();
+  if (name==='wifi') loadWifi();
+  if (name==='vulns') loadVulns();
+  if (name==='alerts') loadAlerts();
+  if (name==='speed') { loadPublicInfo(); drawSpeedChart(); }
+}
+
+function openSettings() {
+  const info = [
+    `Platform: ${navigator.platform}`,
+    `Backend: ${API}`,
+    `Interfaces: ${interfaces.map(i=>i.cidr).join(', ')}`,
+    `Devices found: ${allDevices.length}`,
+  ].join('\n');
+  alert('NetScan Pro Settings\n\n' + info);
+}
+
+// ── START ──
+window.addEventListener('resize', () => { if (document.getElementById('pane-map').classList.contains('active')) renderMap(); });
+init();
+setInterval(loadAlerts, 30000);
+</script>
+</body>
+</html>

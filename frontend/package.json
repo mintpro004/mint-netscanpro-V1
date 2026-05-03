@@ -1,0 +1,89 @@
+{
+  "name": "netscan-pro",
+  "version": "1.0.0",
+  "description": "Real-time network scanner — devices, ports, vulnerabilities, speed test, Wi-Fi",
+  "main": "main.js",
+  "author": "NetScan Pro",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build:linux": "electron-builder --linux",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --linux --mac --win",
+    "dist": "electron-builder"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.netscanpro.app",
+    "productName": "NetScan Pro",
+    "copyright": "Copyright © 2025 NetScan Pro",
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "../backend",
+        "to": "backend",
+        "filter": ["**/*"]
+      }
+    ],
+    "files": [
+      "main.js",
+      "public/**/*",
+      "node_modules/**/*"
+    ],
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64", "arm64"] },
+        { "target": "deb",      "arch": ["x64", "arm64"] },
+        { "target": "rpm",      "arch": ["x64"] },
+        { "target": "tar.gz",   "arch": ["x64", "arm64"] }
+      ],
+      "category": "Network",
+      "description": "Network scanner — devices, ports, vulns, speed test",
+      "icon": "../assets/icon.png",
+      "maintainer": "NetScan Pro",
+      "desktop": {
+        "Name": "NetScan Pro",
+        "Comment": "Network Scanner & Monitor",
+        "Categories": "Network;System;"
+      }
+    },
+    "deb": {
+      "depends": ["python3", "python3-pip", "nmap", "net-tools", "iproute2"]
+    },
+    "rpm": {
+      "depends": ["python3", "python3-pip", "nmap", "net-tools"]
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg",  "arch": ["x64", "arm64"] },
+        { "target": "zip",  "arch": ["x64", "arm64"] }
+      ],
+      "category": "public.app-category.utilities",
+      "icon": "../assets/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis",   "arch": ["x64", "arm64"] },
+        { "target": "portable","arch": ["x64"] }
+      ],
+      "icon": "../assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NetScan Pro"
+    }
+  }
+}

@@ -1,0 +1,158 @@
+name: Build & Release NetScan Pro
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build Linux (AppImage + .deb)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm fakeroot dpkg
+
+      - name: Install npm deps
+        run: cd frontend && npm ci
+
+      - name: Build Linux packages
+        run: cd frontend && npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-builds
+          path: |
+            frontend/dist/*.AppImage
+            frontend/dist/*.deb
+            frontend/dist/*.rpm
+            frontend/dist/*.tar.gz
+
+  build-mac:
+    name: Build macOS (DMG)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install npm deps
+        run: cd frontend && npm ci
+
+      - name: Build macOS packages
+        run: cd frontend && npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-builds
+          path: |
+            frontend/dist/*.dmg
+            frontend/dist/*.zip
+
+  build-windows:
+    name: Build Windows (NSIS Installer)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install npm deps
+        run: cd frontend && npm ci
+
+      - name: Build Windows packages
+        run: cd frontend && npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: |
+            frontend/dist/*.exe
+            frontend/dist/*.msi
+
+  release:
+    name: Create GitHub Release
+    needs: [build-linux, build-mac, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-all
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "NetScan Pro ${{ github.ref_name }}"
+          body: |
+            ## NetScan Pro ${{ github.ref_name }}
+
+            ### Installation
+
+            | Platform | File | Notes |
+            |----------|------|-------|
+            | **Linux (Ubuntu/Debian)** | `.deb` file | `sudo dpkg -i netscan-pro_*.deb` |
+            | **Linux (any)** | `.AppImage` | `chmod +x *.AppImage && ./NetScan-Pro.AppImage` |
+            | **Linux (Fedora/RHEL)** | `.rpm` | `sudo rpm -i netscan-pro*.rpm` |
+            | **macOS** | `.dmg` | Open DMG and drag to Applications |
+            | **Windows** | `.exe` installer | Run installer as Administrator |
+            | **ChromeOS / headless** | Backend only | `python3 backend/scanner.py` then open http://localhost:7832 |
+            | **Mobile** | Web UI | Run backend on your Linux box, open http://YOUR_IP:7832 on phone |
+
+            ### First-time setup
+            ```bash
+            git clone https://github.com/${{ github.repository }}.git
+            cd netscan-pro
+            bash scripts/setup.sh
+            ```
+
+            ### Requirements
+            - Python 3.8+
+            - Node.js 18+ (for desktop GUI only)
+          files: dist-all/**/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
