@@ -2,7 +2,7 @@
 
 > Real-time network scanner with full GUI — devices, ports, vulnerabilities, speed test & Wi-Fi analysis
 
-[![Build](https://github.com/yourusername/netscan-pro/actions/workflows/build.yml/badge.svg)](https://github.com/yourusername/netscan-pro/actions)
+[![Build](https://github.com/mintpro004/mint-netscanpro-V1/actions/workflows/build.yml/badge.svg)](https://github.com/mintpro004/mint-netscanpro-V1/actions)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20ChromeOS-blue)
 ![Python](https://img.shields.io/badge/python-3.8%2B-yellow)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -28,7 +28,7 @@
 
 ### Option A — Installer (Recommended)
 
-Download the latest release for your platform from [Releases](https://github.com/yourusername/netscan-pro/releases):
+Download the latest release for your platform from [Releases](https://github.com/mintpro004/mint-netscanpro-V1/releases):
 
 | Platform | Download |
 |---|---|
@@ -44,8 +44,8 @@ Download the latest release for your platform from [Releases](https://github.com
 
 **1. Clone the repo**
 ```bash
-git clone https://github.com/yourusername/netscan-pro.git
-cd netscan-pro
+git clone https://github.com/mintpro004/mint-netscanpro-V1.git
+cd mint-netscanpro-V1
 ```
 
 **2. Run the setup script**
@@ -97,8 +97,8 @@ sudo python3 backend/scanner.py
 ```bash
 # Enable Linux in ChromeOS Settings → Advanced → Developers
 # Open the Linux Terminal, then:
-git clone https://github.com/yourusername/netscan-pro.git
-cd netscan-pro
+git clone https://github.com/mintpro004/mint-netscanpro-V1.git
+cd mint-netscanpro-V1
 bash scripts/setup.sh
 python3 backend/scanner.py
 # Open Chrome → http://127.0.0.1:7832
@@ -115,8 +115,8 @@ python3 backend/scanner.py
 
 # Option 2: From source
 brew install python3 nmap
-git clone https://github.com/yourusername/netscan-pro.git
-cd netscan-pro && bash scripts/setup.sh
+git clone https://github.com/mintpro004/mint-netscanpro-V1.git
+cd mint-netscanpro-V1 && bash scripts/setup.sh
 ```
 
 For ARP scanning on macOS you may need to run with sudo:
@@ -128,14 +128,14 @@ sudo python3 backend/scanner.py
 
 ### 🪟 Windows
 
-1. Download and run the `.exe` installer from [Releases](https://github.com/yourusername/netscan-pro/releases)
+1. Download and run the `.exe` installer from [Releases](https://github.com/mintpro004/mint-netscanpro-V1/releases)
 2. Run as **Administrator** for full scanning capability
 3. Allow through Windows Firewall when prompted
 
 Or from source (PowerShell as Administrator):
 ```powershell
-git clone https://github.com/yourusername/netscan-pro.git
-cd netscan-pro
+git clone https://github.com/mintpro004/mint-netscanpro-V1.git
+cd mint-netscanpro-V1
 .\scripts\setup.bat
 ```
 
