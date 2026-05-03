@@ -24,138 +24,86 @@
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (All Devices)
 
-### Option A — Installer (Recommended)
+### 1. Prerequisites
+Ensure you have **Python 3.8+** and **Nmap** installed.
 
-Download the latest release for your platform from [Releases](https://github.com/mintpro004/mint-netscanpro-V1/releases):
-
-| Platform | Download |
+| OS | Command |
 |---|---|
-| Ubuntu / Debian | `.deb` package |
-| Any Linux | `.AppImage` (no install needed) |
-| Fedora / RHEL | `.rpm` package |
-| macOS | `.dmg` |
-| Windows | `.exe` installer |
+| **Ubuntu/Debian** | `sudo apt update && sudo apt install python3 python3-pip nmap` |
+| **macOS** | `brew install python nmap` |
+| **Windows** | Download [Python](https://www.python.org/) and [Nmap](https://nmap.org/download.html) |
 
----
-
-### Option B — Run from source
-
-**1. Clone the repo**
+### 2. Installation
 ```bash
+# Clone the repository
 git clone https://github.com/mintpro004/mint-netscanpro-V1.git
 cd mint-netscanpro-V1
-```
 
-**2. Run the setup script**
-```bash
-# Linux / macOS / ChromeOS
+# Run setup script
+# Linux / macOS / ChromeOS / Raspberry Pi:
 bash scripts/setup.sh
 
-# Windows
-scripts\setup.bat
+# Windows (Admin PowerShell):
+.\scripts\setup.bat
 ```
 
-**3. Start the app**
+### 3. Launching
 
+#### **Mode A: Web UI (Works on all devices including Mobile)**
 ```bash
-# Web UI mode (works everywhere including mobile browsers)
 python3 backend/scanner.py
-# → Open http://127.0.0.1:7832 in any browser
+```
+Open **`http://localhost:7832`** in any browser.
 
-# Desktop GUI mode (requires Node.js)
+#### **Mode B: Desktop App (Electron)**
+```bash
 cd frontend && npm start
 ```
 
 ---
 
-## 📦 Platform Guide
+## 📦 Device Specific Guides
 
-### 🐧 Ubuntu / Debian
-
-```bash
-# Install .deb (from Releases page)
-sudo dpkg -i netscan-pro_1.0.0_amd64.deb
-
-# Or from source
-sudo apt-get install python3 python3-pip nmap net-tools
-bash scripts/setup.sh
-```
-
-For full ARP scanning (finds devices that block ICMP):
+### 🐧 Linux (Ubuntu, Debian, Kali)
+For the most accurate device discovery (ARP scanning), the backend needs permission to use raw sockets:
 ```bash
 sudo setcap cap_net_raw+ep $(which python3)
-# or
-sudo python3 backend/scanner.py
-```
-
----
-
-### 💻 ChromeOS (Crostini Linux)
-
-```bash
-# Enable Linux in ChromeOS Settings → Advanced → Developers
-# Open the Linux Terminal, then:
-git clone https://github.com/mintpro004/mint-netscanpro-V1.git
-cd mint-netscanpro-V1
-bash scripts/setup.sh
 python3 backend/scanner.py
-# Open Chrome → http://127.0.0.1:7832
 ```
-
-> **Note:** Wi-Fi scanning is limited on ChromeOS — the web UI still works fully for device discovery, port scanning, speed test and vulnerability analysis.
-
----
+Alternatively, run with sudo: `sudo python3 backend/scanner.py`
 
 ### 🍎 macOS
-
-```bash
-# Option 1: Download the .dmg from Releases
-
-# Option 2: From source
-brew install python3 nmap
-git clone https://github.com/mintpro004/mint-netscanpro-V1.git
-cd mint-netscanpro-V1 && bash scripts/setup.sh
-```
-
-For ARP scanning on macOS you may need to run with sudo:
+Apple's security may restrict network discovery. Run with `sudo` for full functionality:
 ```bash
 sudo python3 backend/scanner.py
 ```
 
----
+### 💻 ChromeOS (Crostini)
+1. Enable **Linux (Beta)** in Settings.
+2. Follow the standard Linux installation steps.
+3. Access the UI via `http://127.0.0.1:7832` in the Chrome browser.
+*Note: Wi-Fi scanning is restricted by the ChromeOS VM.*
+
+### 🥧 Raspberry Pi
+NetScan Pro is ideal for a headless Raspberry Pi:
+```bash
+# Run in background on all interfaces
+python3 backend/scanner.py --host 0.0.0.0 &
+```
+You can now access the scanner from any device on the network at `http://<raspberry-pi-ip>:7832`.
 
 ### 🪟 Windows
-
-1. Download and run the `.exe` installer from [Releases](https://github.com/mintpro004/mint-netscanpro-V1/releases)
-2. Run as **Administrator** for full scanning capability
-3. Allow through Windows Firewall when prompted
-
-Or from source (PowerShell as Administrator):
-```powershell
-git clone https://github.com/mintpro004/mint-netscanpro-V1.git
-cd mint-netscanpro-V1
-.\scripts\setup.bat
-```
-
----
+1. Run PowerShell as **Administrator**.
+2. Run `.\scripts\setup.bat`.
+3. If the firewall prompts you, allow **Python** to access Private and Public networks.
 
 ### 📱 Mobile (iOS / Android)
-
-NetScan Pro doesn't need an app install on mobile. Run the backend on any machine on your network:
-
-```bash
-# On your Linux/Mac/Windows machine — bind to all interfaces:
-python3 backend/scanner.py --host 0.0.0.0
-```
-
-Then on your phone, open:
-```
-http://YOUR_COMPUTER_IP:7832
-```
-
-The web UI is fully responsive and works on mobile browsers.
+No installation needed! Just run the backend on your PC/Pi:
+1. Start backend: `python3 backend/scanner.py --host 0.0.0.0`
+2. Find your computer's IP (e.g., `192.168.1.15`).
+3. On your phone, open: `http://192.168.1.15:7832`
 
 ---
 
@@ -165,91 +113,35 @@ The web UI is fully responsive and works on mobile browsers.
 cd frontend
 npm install
 
-# Linux (.AppImage + .deb + .rpm)
-npm run build:linux
-
-# macOS (.dmg)
-npm run build:mac
-
-# Windows (.exe installer)
-npm run build:win
-
-# All platforms (needs Linux host for cross-compile)
-npm run build:all
-```
-
-Built packages appear in `frontend/dist/`.
-
----
-
-## 🏗 Project Structure
-
-```
-netscan-pro/
-├── backend/
-│   ├── scanner.py          # Python backend — all scanning logic & HTTP API
-│   └── requirements.txt    # Python dependencies
-├── frontend/
-│   ├── main.js             # Electron main process (desktop GUI)
-│   ├── package.json        # Electron + build config (all platforms)
-│   └── public/
-│       └── index.html      # Full web UI (also served by backend)
-├── scripts/
-│   ├── setup.sh            # Linux/macOS/ChromeOS setup
-│   └── setup.bat           # Windows setup
-├── assets/
-│   └── icon.*              # App icons (png/ico/icns)
-├── .github/
-│   └── workflows/
-│       └── build.yml       # CI/CD — auto-builds all platforms on tag push
-└── README.md
+# Build for current OS
+npm run build:linux   # Creates .AppImage, .deb, .rpm
+npm run build:mac     # Creates .dmg
+npm run build:win     # Creates .exe installer
 ```
 
 ---
 
 ## 🔌 API Reference
 
-The Python backend exposes a local REST API on `http://127.0.0.1:7832`:
+The backend exposes a REST API on port `7832`:
 
-| Method | Endpoint | Description |
+| Endpoint | Method | Description |
 |---|---|---|
-| GET | `/api/interfaces` | Network interfaces & CIDRs |
-| GET | `/api/devices` | All discovered devices |
-| POST | `/api/scan/start` | Start network scan `{"cidr": "192.168.1.0/24"}` |
-| GET | `/api/scan/status` | Scan progress & device count |
-| POST | `/api/ports/scan` | Port scan `{"ip": "x.x.x.x", "range": "common"}` |
-| GET | `/api/vulnerabilities` | CVE-based findings for all devices |
-| GET | `/api/wifi` | Wi-Fi networks |
-| GET | `/api/speedtest` | Run speed test |
-| GET | `/api/public` | Public IP & ISP info |
-| GET | `/api/dns` | DNS servers |
-| GET | `/api/alerts` | Event alerts |
-| GET | `/api/system` | CPU/RAM/network stats |
+| `/api/devices` | GET | List all found devices |
+| `/api/scan/start` | POST | Trigger a new network scan |
+| `/api/ports/scan` | POST | Scan ports for a specific IP |
+| `/api/speedtest` | GET | Run a network speed test |
 
 ---
 
 ## ⚠️ Permissions & Legal
 
-- **Legal use only** — only scan networks you own or have explicit permission to test
-- Raw socket scanning (ARP) requires elevated permissions on most OS
-- The app never sends your network data anywhere — all scanning is local
-- Speed test uses Cloudflare's public test endpoint (10MB download, 2MB upload)
-
----
-
-## 🤝 Contributing
-
-```bash
-# Fork → clone → branch → PR
-git checkout -b feature/my-feature
-# Make changes
-git commit -m "feat: add my feature"
-git push origin feature/my-feature
-# Open a PR on GitHub
-```
+- **Authorized access only**: Only scan networks you own or have permission to test.
+- **Raw Sockets**: ARP scanning requires root/admin or `cap_net_raw` on Linux.
+- **Privacy**: All data stays on your local machine.
 
 ---
 
 ## 📄 License
 
-MIT — see [LICENSE](LICENSE)
+MIT — Copyright (c) 2025 NetScan Pro
